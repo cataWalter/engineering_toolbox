@@ -6,8 +6,10 @@ import numpy as numpy
 
 from engineering_notation import EngNumber
 
+ROUNDED = 3
 
-def parallel(impedances):
+
+def parallel(*impedances):
     res = 0
     for impedance in impedances:
         res += 1 / impedance
@@ -53,53 +55,44 @@ def print_voltage_capacitor(vc_0, vc_inf, Req, C):
     print("vc(t) = " + str(vc_inf) + "(" + str(vc_0 - vc_inf) + ")exp(-t/tau)")
 
 
-def get_main_variables():
-    # Get the dictionary of current local variables
-    current_vars = locals().copy()
-
-    # We do not want to print the function itself
-    exclude_keys = ['get_main_variables']
-
-    # Filter out the function and other internal attributes
-    main_vars = {k: v for k, v in current_vars.items() if
-                 k not in exclude_keys and not k.startswith('__')}
-
-    return main_vars
+def impedance_capacitor(w_rads, capacitance):
+    return 1 / (1j * w_rads * capacitance)
 
 
-def format_value(value):
-    if isinstance(value, float):
-        # Check if the number is in engineering notation
-        if 'e' in f"{value}":
-            return f"{value:.3e}"
-        return f"{value:.3f}"
-    elif isinstance(value, complex):
-        real_part = f"{value.real:.3e}" if 'e' in f"{value.real}" else (fvalue.real:.3f}")
-        imag_part = f"{value.imag:.3e}" if 'e' in f"{value.imag}" \
-            else f"{value.imag:.3f}"
-        return f"{real_part} + {imag_part}j"
-    elif isinstance(value, (list, tuple)):
-        return [format_value(v) for v in value]
-    elif isinstance(value, dict):
-        return {k: format_value(v) for k, v in value.items()}
-    else:
-        return value
+def impedance_inductor(w_rads, inductance):
+    return 1j * w_rads * inductance
 
 
-q = 1
-eps0 = 8.85e-12
-eps1 = eps0 * 10
-eps2 = eps0 * 2
-L = 1
-Z = 1 + 2j
-Z1 = parallel([Z, Z, Z])
-
-global_vars = globals().copy()
-exclude_keys = list(__builtins__.__dict__.keys()) + ['get_global_variables',
-                                                     'main', '__builtins__']
-filtered_globals = {k: format_value(v) for k, v in global_vars.items()
-                    if k not in exclude_keys and not k.startswith('__') and
-                    not isinstance(v, (
-                        types.ModuleType, types.FunctionType, type))}
-for name, value in filtered_globals.items():
-    print(f"{name} = {value}")
+vg = 48
+ig = 10j
+w = 1000
+l1 = 9e-3
+l2 = 8e-3
+c1 = c2 = 1e-3
+r1 = 10
+r2 = 4
+r3 = 1
+r4 = 12
+r5 = 12
+r6 = 12
+zc1 = impedance_capacitor(w, c1)
+zc2 = impedance_capacitor(w, c2)
+zl1 = impedance_inductor(w, l1)
+zl2 = impedance_inductor(w, l2)
+v1 = vg
+z1 = r1 + zc1 + zl1
+z2 = r2 + zl2
+z3 = r3 + zc2
+iv2 = (v1 / z3 - ig)
+zv2 = parallel(z3, r5, r6, r4)
+v2 = (v1 / z3 - ig) * parallel(z3, r5, r6, r4)
+v3 = v1 + ig * parallel(z1, z2)
+vc1 = (v3 - v1) / z1 * zc1
+vc1t = rect_to_polar_rad(vc1)
+i1 = (v1 - v3) / parallel(z1, z2) + (v1 - v2) / z3
+svg = 1 / 2 * vg * i1.conjugate()
+vth = v3 - v1
+zth = z2
+vz1 = vth * z1 / (z1 + zth)
+sz1 = vz1 * vz1 / (2 * z1.conjugate())
+print()
